@@ -1,5 +1,4 @@
 # 🔐 Deep Learning CAPTCHA Recognizer
-# 🔐 Deep Learning CAPTCHA Recognizer
 
 A high-performance CAPTCHA recognition system using a **ResNet CNN + Transformer** architecture, trained end-to-end with CTC loss on 113,000+ images.
 
