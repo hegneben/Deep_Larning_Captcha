@@ -1,7 +1,9 @@
-# 🔐 Deep Learning CAPTCHA Recognizer
+# 🔐 Deep Learning CAPTCHA & Handwriting Recognizer
 
-A high-performance CAPTCHA recognition system using a **ResNet CNN + Transformer** architecture, trained end-to-end with CTC loss on 113,000+ images.
+A recognition system for **CAPTCHAs and handwriting** using Deep Learning.  
+Available in two versions: a high-performance version for powerful PCs and a lightweight version for weaker hardware.
 
+---
 
 ## 👥 Authors
 
@@ -14,52 +16,96 @@ A high-performance CAPTCHA recognition system using a **ResNet CNN + Transformer
 
 ## 📁 Project Structure
 
-A CAPTCHA recognition system using a **ResNet CNN + Transformer** architecture trained with CTC loss.
-
+```
 Deep_Larning_Captcha/
 │
-├── train.py          # Training script
-├── inference.py      # Inference script (single image & batch)
-├── README.md         # This file
-└── .gitignore        # Excludes model weights & cache
+├── .github/
+│   └── workflows/
+│       └── ci.yml                        # CI/CD Pipeline
+│
+├── src/
+│   ├── Deep_Learning_Captcha.py          # Training script (GPU, high-performance)
+│   ├── Read_Captcha_Traind_Modell.py     # Inference script
+│   ├── classify.py                       # Classification (standard version)
+│   └── classify_optimized.py            # Classification (RAM-optimized, powerful PC)
+│
+├── models/
+│   ├── Deep_2_1.pth                      # CAPTCHA model v2.1 (ResNet+Transformer)
+│   ├── ...                               # Further pre-trained models (coming soon)
+│   └── README_models.md                  # Description of all available models
+│
+├── plots/
+│   └── training_results_epoch20_acc93.png
+│
+├── README.md
+├── LICENSE
+├── requirements.txt                      # GPU version dependencies
+├── requirements_cpu.txt                  # CPU version dependencies (coming soon)
+└── environment.yml                       # Conda environment (GPU)
+```
 
-## 📊 Architecture
+---
+
+## 🖥️ Versions Overview
+
+| Version | Hardware | Description | Status |
+|---------|----------|-------------|--------|
+| **GPU / High-performance** | Powerful PC + NVIDIA GPU | Full model, fast training & inference | ✅ Available |
+| **CPU / Lightweight** | Any PC, no GPU needed | Optimized for weak hardware | 🔜 Coming soon |
+
+---
+
+## 🧠 Available Models
+
+| Model | Task | Architecture | Accuracy | Status |
+|-------|------|-------------|----------|--------|
+| `Deep_2_1.pth` | CAPTCHA recognition | ResNet + Transformer | ~93% Word / ~99% Char | ✅ Available |
+| Handwriting model | Handwriting recognition | TBD | TBD | 🔜 Coming soon |
+| Lightweight model | CAPTCHA (weak PC) | TBD | TBD | 🔜 Coming soon |
+
+> All models can be used with the classification scripts (`classify.py` / `classify_optimized.py`)
+
+---
+
+## 📊 Model Architecture (ResNet + Transformer)
+
+```
 Input Image (160 × 48 px)
-│
-▼
-┌───────────────────┐
-│  ResNet CNN       │  4 ResBlocks (stride-2)
-│  Backbone         │  32 → 64 → 128 → 256 channels
-└───────────────────┘
-│
-▼
-┌───────────────────┐
-│  Linear           │  Feature projection → d_model=256
-│  Projection       │
-└───────────────────┘
-│
-▼
-┌───────────────────┐
-│  Positional       │  Sinusoidal encoding
-│  Encoding         │
-└───────────────────┘
-│
-▼
-┌───────────────────┐
-│  Transformer      │  4 Layers, 8 Heads, Pre-LN
-│  Encoder          │  dim_feedforward = 1024
-└───────────────────┘
-│
-▼
-┌───────────────────┐
-│  CTC Head         │  62 classes + blank
-└───────────────────┘
-│
-▼
-Greedy / Beam Search Decoding
-│
-▼
-Predicted Tex
+         │
+         ▼
+┌─────────────────────┐
+│   ResNet CNN        │  4 ResBlocks (stride-2)
+│   Backbone          │  32 → 64 → 128 → 256 channels
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   Linear Projection │  Feature projection → d_model=256
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   Positional        │  Sinusoidal encoding
+│   Encoding          │
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   Transformer       │  4 Layers, 8 Heads, Pre-LN
+│   Encoder           │  dim_feedforward = 1024
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   CTC Head          │  62 classes + blank
+└─────────────────────┘
+         │
+         ▼
+  Greedy / Beam Search Decoding
+         │
+         ▼
+    Predicted Text
+```
 
 ---
 
@@ -103,10 +149,10 @@ Predicted Tex
 
 | Metric | Greedy Decoding | Beam Search (width=5) |
 |--------|-----------------|-----------------------|
-| Word Accuracy | ~XX% | ~XX% |
-| Char Accuracy | ~XX% | ~XX% |
+| Word Accuracy | ~93% | TBD |
+| Char Accuracy | ~99% | TBD |
 
-> Fill in your results after training.
+![Training Results](plots/training_results_epoch20_acc93.png)
 
 ---
 
@@ -114,8 +160,22 @@ Predicted Tex
 
 ### 1. Install Dependencies
 
+**With GPU (NVIDIA CUDA):**
 ```bash
-pip install torch torchvision pillow tqdm matplotlib
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
+```
+
+**Without GPU (CPU only):**
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+```
+
+**With Conda (recommended):**
+```bash
+conda env create -f environment.yml
+conda activate torch_gpu
 ```
 
 ### 2. Download Dataset
@@ -125,21 +185,27 @@ pip install kagglehub
 python -c "import kagglehub; kagglehub.dataset_download('parsasam/captcha-dataset')"
 ```
 
-### 3. Start Training
+### 3. Training
 
 ```bash
-python train.py
+python src/Deep_Learning_Captcha.py
 ```
 
 Training outputs:
 - Live plot (Loss, Accuracy, Learning Rate)
-- Best model saved as `best_captcha_model.pth`
+- Best model saved as `models/best_captcha_model.pth`
 - Per-epoch console output with example predictions
 
-### 4. Run Inference
+### 4. Inference / Classification
 
+**Standard version** (works on any PC):
 ```bash
-python inference.py
+python src/classify.py
+```
+
+**Optimized version** (loads all data into RAM — for powerful PCs):
+```bash
+python src/classify_optimized.py
 ```
 
 Two modes:
@@ -150,11 +216,22 @@ Two modes:
 
 ## 🔍 CTC Decoding
 
-**Greedy Decoding**
+**Greedy Decoding**  
 Fast — picks the most likely character at each timestep. Ideal for batch evaluation.
 
-**Beam Search (width=5)**
+**Beam Search (width=5)**  
 Explores multiple paths simultaneously. Slightly more accurate, used for single-image inference.
+
+---
+
+## ⚡ Performance Optimizations
+
+| Optimization | Description |
+|---|---|
+| AMP | float16 mixed precision — reduces memory, speeds up training |
+| RAM preloading | Entire dataset loaded into RAM before training (optimized version) |
+| pin_memory | Fast CPU→GPU data transfers |
+| cudnn.benchmark | Optimized CUDA kernels |
 
 ---
 
@@ -168,19 +245,6 @@ Explores multiple paths simultaneously. Slightly more accurate, used for single-
 
 ---
 
-## ⚡ Performance
-
-- Entire dataset is loaded into RAM before training for maximum speed
-- AMP (Automatic Mixed Precision) reduces memory usage and speeds up training
-- `pin_memory=True` + `non_blocking=True` for fast CPU→GPU transfers
-- `torch.backends.cudnn.benchmark = True` for optimized CUDA kernels
-
----
-
-## 🗂️ .gitignore
-
 ## 📄 License
 
-This project is for educational purposes only.
-
----
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
