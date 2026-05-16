@@ -69,43 +69,18 @@ Deep_Larning_Captcha/
 
 ## 📊 Model Architecture (ResNet + Transformer)
 
-```
-Input Image (160 × 48 px)
-         │
-         ▼
-┌─────────────────────┐
-│   ResNet CNN        │  4 ResBlocks (stride-2)
-│   Backbone          │  32 → 64 → 128 → 256 channels
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│   Linear Projection │  Feature projection → d_model=256
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│   Positional        │  Sinusoidal encoding
-│   Encoding          │
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│   Transformer       │  4 Layers, 8 Heads, Pre-LN
-│   Encoder           │  dim_feedforward = 1024
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│   CTC Head          │  62 classes + blank
-└─────────────────────┘
-         │
-         ▼
-  Greedy / Beam Search Decoding
-         │
-         ▼
-    Predicted Text
-```
+
+| Step | Layer | Details |
+|------|-------|---------|
+| 1 | **Input** | 160 × 48 px grayscale image |
+| 2 | **ResNet CNN backbone** | 4 ResBlocks (stride-2) · 32 → 64 → 128 → 256 channels |
+| 3 | **Linear projection** | Feature map → d_model = 256 |
+| 4 | **Positional encoding** | Sinusoidal · adds position info to sequence |
+| 5 | **Transformer encoder** | 4 layers · 8 attention heads · Pre-LN · FFN dim 1024 |
+| 6 | **CTC head** | 62 classes (a–z, A–Z, 0–9) + blank token |
+| 7 | **Decoding** | Greedy (fast) or Beam Search width=5 (accurate) |
+| 8 | **Output** | Predicted text string |
+
 
 ---
 
