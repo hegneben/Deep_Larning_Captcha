@@ -5,7 +5,7 @@ CAPTCHA Recognition — ResNet CNN + Transformer + CTC Loss
 WHAT THIS SCRIPT DOES:
     Trains a deep learning model to read text from CAPTCHA images.
     The model uses a ResNet-style CNN to extract visual features,
-    a Transformer encoder to model the character sequence, and
+    two fully-connected layers to model the character sequence, and
     CTC loss to handle variable-length outputs without needing
     pre-segmented characters.
 
@@ -62,7 +62,6 @@ IMPORTANT NOTES FOR USERS:
 """
 
 import os
-import math
 import string
 import random
 
@@ -95,10 +94,9 @@ GRAD_CLIP_NORM  = 5.0
 TRAIN_RATIO = 0.8
 VAL_RATIO   = 0.1
 
-TRANSFORMER_D_MODEL    = 256
-TRANSFORMER_NUM_HEADS  = 8
-TRANSFORMER_NUM_LAYERS = 4
-TRANSFORMER_DROPOUT    = 0.1
+# Fully-connected sequence layers (replace Transformer)
+FC_HIDDEN_DIM = 512    # hidden dimension of the two FC layers
+FC_DROPOUT    = 0.1    # dropout applied between the two FC layers
 
 BEAM_SEARCH_WIDTH = 5
 
@@ -427,41 +425,20 @@ class ResidualBlock(nn.Module):
         return self.relu(out + identity)
 
 
-class SinusoidalPositionalEncoding(nn.Module):
+class CaptchaResCNN(nn.Module):
     """
-    Adds positional information to Transformer input embeddings.
+    Full CAPTCHA recognition model: ResNet CNN + two FC layers + CTC head.
 
-    Args:
-        embedding_dim       : must match the Transformer d_model
-        max_sequence_length : maximum number of timesteps expected
-        dropout_rate        : applied after adding the positional encoding
-    """
+    The Transformer encoder has been replaced by two fully-connected (linear)
+    layers with ReLU activation and dropout in between. Each timestep from the
+    CNN is processed independently through these layers before classification.
 
-    def __init__(self, embedding_dim: int, max_sequence_length: int = 256,
-                 dropout_rate: float = 0.1):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout_rate)
-
-        positional_encoding = torch.zeros(max_sequence_length, embedding_dim)
-        positions           = torch.arange(0, max_sequence_length).unsqueeze(1).float()
-        frequency_divisors  = torch.exp(
-            torch.arange(0, embedding_dim, 2).float()
-            * (-math.log(10000.0) / embedding_dim)
-        )
-
-        positional_encoding[:, 0::2] = torch.sin(positions * frequency_divisors)
-        positional_encoding[:, 1::2] = torch.cos(positions * frequency_divisors)
-
-        self.register_buffer("positional_encoding", positional_encoding.unsqueeze(0))
-
-    def forward(self, embeddings: torch.Tensor) -> torch.Tensor:
-        embeddings = embeddings + self.positional_encoding[:, :embeddings.size(1)]
-        return self.dropout(embeddings)
-
-
-class CaptchaResTransformer(nn.Module):
-    """
-    Full CAPTCHA recognition model: ResNet CNN + Transformer encoder + CTC head.
+    Architecture overview:
+        1. ResNet CNN backbone -- extracts local visual features from the image
+        2. Feature reshape     -- converts the 2D feature map to a 1D sequence
+        3. FC layer 1          -- CNN_FEATURE_DIM -> FC_HIDDEN_DIM, ReLU, Dropout
+        4. FC layer 2          -- FC_HIDDEN_DIM   -> FC_HIDDEN_DIM, ReLU, Dropout
+        5. CTC head            -- FC_HIDDEN_DIM   -> NUM_CLASSES + 1
 
     Input shape  : (B, 3, IMAGE_HEIGHT, IMAGE_WIDTH) = (B, 3, 48, 160)
     Output shape : (B, num_timesteps, NUM_CLASSES + 1) -- log-softmax probabilities
@@ -479,10 +456,8 @@ class CaptchaResTransformer(nn.Module):
     def __init__(
         self,
         num_output_classes: int,
-        transformer_dim:     int   = TRANSFORMER_D_MODEL,
-        num_attention_heads: int   = TRANSFORMER_NUM_HEADS,
-        num_encoder_layers:  int   = TRANSFORMER_NUM_LAYERS,
-        dropout_rate:        float = TRANSFORMER_DROPOUT
+        fc_hidden_dim: int   = FC_HIDDEN_DIM,
+        dropout_rate:  float = FC_DROPOUT
     ):
         super().__init__()
 
@@ -496,41 +471,47 @@ class CaptchaResTransformer(nn.Module):
             ResidualBlock(in_channels=256, out_channels=256, stride=1),
         )
 
-        self.feature_projection = nn.Linear(self.CNN_FEATURE_DIM, transformer_dim)
-
-        self.positional_encoder = SinusoidalPositionalEncoding(
-            embedding_dim=transformer_dim,
-            dropout_rate=dropout_rate
+        # Two fully-connected layers applied at each timestep independently
+        self.fc_layers = nn.Sequential(
+            nn.Linear(self.CNN_FEATURE_DIM, fc_hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(fc_hidden_dim, fc_hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=dropout_rate),
         )
 
-        transformer_encoder_layer = nn.TransformerEncoderLayer(
-            d_model=transformer_dim,
-            nhead=num_attention_heads,
-            dim_feedforward=transformer_dim * 4,
-            dropout=dropout_rate,
-            batch_first=True,
-            norm_first=True
-        )
-        self.transformer_encoder = nn.TransformerEncoder(
-            transformer_encoder_layer,
-            num_layers=num_encoder_layers
-        )
-
-        self.ctc_classifier = nn.Linear(transformer_dim, num_output_classes + 1)
+        # +1 for the CTC blank token (index = NUM_CLASSES = 62)
+        self.ctc_classifier = nn.Linear(fc_hidden_dim, num_output_classes + 1)
 
     def forward(self, image_batch: torch.Tensor) -> torch.Tensor:
-        cnn_features = self.cnn_backbone(image_batch)
+        """
+        Forward pass.
 
+        Args:
+            image_batch : (B, 3, H, W) normalised image tensor
+
+        Returns:
+            log_softmax output of shape (B, T, C+1) where
+            T = number of timesteps (= W // 8 = 20) and
+            C+1 = number of classes including blank token
+        """
+        # CNN: extract spatial features
+        cnn_features = self.cnn_backbone(image_batch)   # (B, 256, 6, 20)
+
+        # Reshape: treat image width as the sequence dimension
         batch_size, num_channels, feature_height, num_timesteps = cnn_features.shape
         cnn_features = cnn_features.permute(0, 3, 1, 2)
         sequence     = cnn_features.reshape(batch_size, num_timesteps,
                                             num_channels * feature_height)
+        # sequence shape: (B, 20, 1536)
 
-        sequence = self.feature_projection(sequence)
-        sequence = self.positional_encoder(sequence)
-        sequence = self.transformer_encoder(sequence)
+        # Apply FC layers at each timestep independently
+        sequence = self.fc_layers(sequence)              # (B, 20, 512)
 
-        logits = self.ctc_classifier(sequence)
+        # Predict character probabilities at each timestep
+        logits = self.ctc_classifier(sequence)           # (B, 20, 63)
+
         return logits.log_softmax(dim=2)
 
 
@@ -588,7 +569,7 @@ test_dataloader = DataLoader(
 # MODEL, LOSS, OPTIMIZER, SCHEDULER
 # =============================================================================
 
-model = CaptchaResTransformer(num_output_classes=NUM_CLASSES).to(device)
+model = CaptchaResCNN(num_output_classes=NUM_CLASSES).to(device)
 
 ctc_loss_function = nn.CTCLoss(blank=BLANK_TOKEN_INDEX, zero_infinity=True)
 
@@ -613,7 +594,7 @@ grad_scaler = torch.amp.GradScaler("cuda")
 
 plt.ion()
 dashboard_fig, dashboard_axes = plt.subplots(1, 3, figsize=(15, 4))
-dashboard_fig.suptitle("CAPTCHA ResNet+Transformer -- Training Dashboard", fontsize=13)
+dashboard_fig.suptitle("CAPTCHA ResNet+FC -- Training Dashboard", fontsize=13)
 
 epoch_train_losses   = []
 epoch_val_losses     = []
