@@ -117,7 +117,7 @@ Input Image (160 × 48 px)
 
 | Model | Task | Architecture | Accuracy | Dataset | Status |
 |-------|------|-------------|----------|---------|--------|
-| `Deep_2_1.pth` | CAPTCHA recognition | ResNet + Transformer | ~93% Word / ~99% Char | [CAPTCHA Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset) | ✅ Available |
+| `Deep_2_1.pth` | CAPTCHA recognition | ResNet + Transformer | 93% Word / 96% Char | [CAPTCHA Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset) | ✅ Available |
 | Handwriting model | Handwriting recognition | TBD | TBD | TBD | 🔜 Coming soon |
 | Lightweight model | CAPTCHA (weak PC) | TBD | TBD | TBD | 🔜 Coming soon |
 
