@@ -99,17 +99,47 @@ def render_text_image(label):
 # Main
 # _____________________________________________________________________________
 
+import csv
+
+num_samples = 1000
 
 if __name__ == "__main__":
-    
-    label = generate_label()
-    
-    image = render_text_image(label)
-    
-    filename = f"{label}.png"
-    
-    save_path = os.path.join(output_directory, filename)
-    
-    image.save(save_path)
-    
-    print(f"Saved image to: {save_path}")
+
+    images_dir = output_directory / "images"
+    os.makedirs(images_dir, exist_ok=True)
+
+    metadata_path = output_directory / "labels.csv"
+
+    with open(metadata_path, mode="w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+
+        writer.writerow([
+            "filename",
+            "label",
+            "sequence_length",
+            "font",
+            "distortion_name",
+            "distortion_level"
+        ])
+
+        for i in range(num_samples):
+            label = generate_label()
+            image = render_text_image(label)
+
+            filename = f"{i:06d}_{label}.png"
+            save_path = images_dir / filename
+
+            image.save(save_path)
+
+            writer.writerow([
+                filename,
+                label,
+                len(label),
+                font_path.name,
+                "clean",
+                0
+            ])
+
+    print(f"Generated {num_samples} clean samples.")
+    print(f"Images saved to: {images_dir}")
+    print(f"Metadata saved to: {metadata_path}")

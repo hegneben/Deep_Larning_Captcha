@@ -6,6 +6,7 @@ import torch.nn as nn
 from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # =========================
 # DEVICE
@@ -16,12 +17,14 @@ print("Device:", device)
 # =========================
 # MODEL PATH
 # =========================
-MODEL_PATH = r"C:\Users\Benedikt\Deep_2_1.pth"
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = BASE_DIR / "models" / "Deep_2_1.pth"
 
 # =========================
 # LOAD CHECKPOINT
 # =========================
-checkpoint = torch.load(MODEL_PATH, map_location=device)
+checkpoint = torch.load(str(MODEL_PATH), map_location=device)
 
 # Falls char2idx im Checkpoint gespeichert ist → laden
 # Falls nicht → aus Charset rekonstruieren
