@@ -1,0 +1,5 @@
+distortion_name,distortion_level,n_samples,sequence_accuracy_mean,character_accuracy_mean,sequence_accuracy_drop_from_clean,character_accuracy_drop_from_clean
+clean,0,1000,0.076,0.5779,0.0,0.0
+mild,1,1000,0.0,0.0021666666666666657,0.076,0.5757333333333333
+moderate,2,1000,0.0,0.0011666666666666663,0.076,0.5767333333333333
+severe,3,1000,0.0,0.0016666666666666661,0.076,0.5762333333333333

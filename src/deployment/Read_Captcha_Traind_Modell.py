@@ -6,6 +6,7 @@ import torch.nn as nn
 from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # =========================
 # DEVICE
@@ -16,12 +17,16 @@ print("Device:", device)
 # =========================
 # MODEL PATH
 # =========================
-MODEL_PATH = r"C:\Users\Benedikt\Deep_2_1.pth"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+MODEL_PATH = BASE_DIR / "models" / "new_Models" / "model_Transformer_new_78acc_state_dict.pth"
+
+print("Loading model from:", MODEL_PATH)
+print("Exists?", MODEL_PATH.exists())
 
 # =========================
 # LOAD CHECKPOINT
 # =========================
-checkpoint = torch.load(MODEL_PATH, map_location=device)
+checkpoint = torch.load(str(MODEL_PATH), map_location=device)
 
 # Falls char2idx im Checkpoint gespeichert ist → laden
 # Falls nicht → aus Charset rekonstruieren
@@ -126,16 +131,40 @@ class CRNN_ResTransformer(nn.Module):
 # =========================
 # MODELL LADEN
 # =========================
+checkpoint = torch.load(str(MODEL_PATH), map_location=device)
+
+chars = string.ascii_lowercase + string.ascii_uppercase + string.digits
+char2idx = {c: i for i, c in enumerate(chars)}
+idx2char = {i: c for c, i in char2idx.items()}
+
+blank_idx = len(char2idx)
+num_classes = len(char2idx)
+print(f"Charset: {num_classes} Zeichen  |  blank_idx: {blank_idx}")
+
 model = CRNN_ResTransformer(num_classes=num_classes).to(device)
 
-if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-    model.load_state_dict(checkpoint["model_state_dict"])
-else:
-    # torch.save(model.state_dict(), ...) → direkt laden
-    model.load_state_dict(checkpoint)
+state_dict = checkpoint["model_state_dict"]
 
+rename_map = {
+    "cnn_backbone.": "cnn.",
+    "feature_projection.": "proj.",
+    "positional_encoder.positional_encoding": "pos_enc.pe",
+    "transformer_encoder.": "transformer.",
+    "ctc_classifier.": "fc.",
+    "identity_downsample.": "downsample.",
+}
+
+new_state_dict = {}
+
+for key, value in state_dict.items():
+    new_key = key
+    for old, new in rename_map.items():
+        new_key = new_key.replace(old, new)
+    new_state_dict[new_key] = value
+
+model.load_state_dict(new_state_dict)
 model.eval()
-print("Modell geladen ✔")
+print("Model Loaded ✔")
 
 # =========================
 # TRANSFORM
