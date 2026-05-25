@@ -13,7 +13,11 @@ import csv
 import string
 import torch
 
-from Read_Captcha_Traind_Modell import predict
+from src.deployment.Read_Captcha_Traind_Modell import CRNN_ResTransformer
+
+CaptchasResTransformer = CRNN_ResTransformer
+
+from src.deployment.Read_Captcha_Traind_Modell import predict
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
