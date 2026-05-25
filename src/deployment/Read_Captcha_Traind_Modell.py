@@ -6,6 +6,7 @@ import torch.nn as nn
 from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # =========================
 # DEVICE
@@ -16,27 +17,12 @@ print("Device:", device)
 # =========================
 # MODEL PATH
 # =========================
-MODEL_PATH = r"C:\Users\Benedikt\Deep_2_1.pth"
 
-# =========================
-# LOAD CHECKPOINT
-# =========================
-checkpoint = torch.load(MODEL_PATH, map_location=device)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+MODEL_PATH = BASE_DIR / "models" / "new_Models" / "model_Transformer_new_78acc_state_dict.pth"
 
-# Falls char2idx im Checkpoint gespeichert ist → laden
-# Falls nicht → aus Charset rekonstruieren
-if isinstance(checkpoint, dict) and "char2idx" in checkpoint:
-    char2idx = checkpoint["char2idx"]
-    idx2char  = checkpoint["idx2char"]
-else:
-    # Charset muss exakt dem Training entsprechen!
-    chars     = string.ascii_lowercase + string.ascii_uppercase + string.digits
-    char2idx  = {c: i for i, c in enumerate(chars)}
-    idx2char  = {i: c for c, i in char2idx.items()}
-
-blank_idx  = len(char2idx)
-num_classes = len(char2idx)
-print(f"Charset: {num_classes} Zeichen  |  blank_idx: {blank_idx}")
+print("Loading model from:", MODEL_PATH)
+print("Exists?", MODEL_PATH.exists())
 
 # =========================
 # ARCHITEKTUR
@@ -122,17 +108,45 @@ class CRNN_ResTransformer(nn.Module):
         feat = self.transformer(feat)         # (B, W, d_model)
         return self.fc(feat).log_softmax(2)   # (B, W, num_classes+1)
 
+#Alias included for loading checkpoints saved with old class name
+CaptchaResTransformer = CRNN_ResTransformer
 
 # =========================
-# MODELL LADEN
+# LOAD CHECKPOINT
 # =========================
+checkpoint = torch.load(str(MODEL_PATH), map_location=device)
+
+# Charset
+chars = string.ascii_lowercase + string.ascii_uppercase + string.digits
+char2idx = {c: i for i, c in enumerate(chars)}
+idx2char = {i: c for c, i in char2idx.items()}
+
+blank_idx = len(char2idx)
+num_classes = len(char2idx)
+print(f"Charset: {num_classes} Zeichen  |  blank_idx: {blank_idx}")
+
 model = CRNN_ResTransformer(num_classes=num_classes).to(device)
 
-if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-    model.load_state_dict(checkpoint["model_state_dict"])
-else:
-    # torch.save(model.state_dict(), ...) → direkt laden
-    model.load_state_dict(checkpoint)
+state_dict = checkpoint["model_state_dict"]
+
+rename_map = {
+    "cnn_backbone.": "cnn.",
+    "feature_projection.": "proj.",
+    "positional_encoder.positional_encoding": "pos_enc.pe",
+    "transformer_encoder.": "transformer.",
+    "ctc_classifier.": "fc.",
+    "identity_downsample.": "downsample.",
+}
+
+new_state_dict = {}
+
+for key, value in state_dict.items():
+    new_key = key
+    for old, new in rename_map.items():
+        new_key = new_key.replace(old, new)
+    new_state_dict[new_key] = value
+
+model.load_state_dict(new_state_dict)
 
 model.eval()
 print("Modell geladen ✔")
