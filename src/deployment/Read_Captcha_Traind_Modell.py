@@ -304,7 +304,7 @@ def predict(image_path, use_beam=True, beam_width=5, show_images=True):
 
 
 # =========================
-# MEHRERE BILDER TESTEN
+# MORE THAN ONE PICTURE
 # =========================
 def predict_batch(image_paths, use_beam=False):
     """Mehrere Bilder auf einmal testen (ohne Plot)."""
