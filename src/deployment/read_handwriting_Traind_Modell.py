@@ -16,8 +16,11 @@ print("Device:", device)
 # =========================
 # MODEL PATH
 # =========================
-MODEL_PATH = r"C:\Users\Benedikt\hand_writing_final_model1.pth"
 
+MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "../../Models/handwriting_Traind_Model.pth"
+)
 # =========================
 # LOAD CHECKPOINT
 # =========================
