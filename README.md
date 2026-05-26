@@ -1,25 +1,44 @@
-# Evaluating CAPTCHA Distortions with Deep Learning: Can we beat the CAPTCHA?
+# 🔐 Evaluating CAPTCHA Distortions with Deep Learning
 
-This project's goal is to investigate the robustness of modern deep learning Optical Character Recognition (OCR) systems againts synthetic CAPTCHA-like distortions.
-Using a **ResNet CNN + Transformer** architecture trained with CTC loss, we evaluate how different distortion types and severity levels impact the machine's text recognition performance, and compare these results to 
-A high-performance CAPTCHA recognition system using a **ResNet CNN + Transformer** architecture, trained end-to-end with CTC loss on 113,000+ images.
+> **Can modern OCR systems beat the CAPTCHA?**
 
-## Research Objectives
-# 🔐 Deep Learning CAPTCHA & Handwriting Recognizer
-
-A recognition system for **CAPTCHAs and handwriting** using Deep Learning.  
-Available in two versions: a high-performance version for powerful PCs and a lightweight version for weaker hardware.
+This project investigates the robustness of deep learning–based Optical Character Recognition (OCR) against synthetic CAPTCHA-style distortions. Using a **ResNet CNN + Transformer** architecture trained end-to-end with CTC loss on 113,000+ images, we evaluate how different distortion types and severity levels impact machine text recognition performance.
 
 ---
 
+## 📋 Table of Contents
+
+- [Research Objectives](#research-objectives)
+- [Distortion Benchmarking](#distortion-benchmarking)
+- [Project Structure](#project-structure)
+- [Versions Overview](#versions-overview)
+- [Available Models](#available-models)
+- [Model Architecture](#model-architecture)
+- [Training Pipeline](#training-pipeline)
+- [Dataset](#dataset)
+- [Results](#results)
+- [Setup & Usage](#setup--usage)
+- [CTC Decoding](#ctc-decoding)
+- [Performance Optimizations](#performance-optimizations)
+- [Data Augmentation](#data-augmentation)
+- [Ethical Use](#ethical-use)
+- [Authors](#authors)
+- [License](#license)
+
+---
+
+## 🎯 Research Objectives
+
 This project aims to answer the following questions:
 
-- Which CAPTCHA-style distortions most effectively reduce OCR performance?
-- Which distortions impact humans more than machines (Qualitative Assessemnt with class if time allows)?
-- Hows does the model accuracy degrade as distortion severity increases?
+- Which CAPTCHA-style distortions most effectively reduce OCR accuracy?
+- Which distortions impact humans more than machines? *(qualitative assessment, if time allows)*
+- How does model accuracy degrade as distortion severity increases?
 - Can modern OCR architectures reliably solve heavily distorted synthetic CAPTCHAs?
 
-## Distortion Benchmarking
+---
+
+## 🌀 Distortion Benchmarking
 
 Synthetic CAPTCHA images are generated with controlled distortions, including:
 
@@ -27,79 +46,52 @@ Synthetic CAPTCHA images are generated with controlled distortions, including:
 - Gaussian blur
 - Noise injection
 - Character overlap
-- Perpective warping
-- Background clutter (ex. lines, dots etc.)
+- Perspective warping
+- Background clutter (lines, dots, etc.)
 - Occlusion lines (foreground)
-- Font variation (consider use cases for old German font?)
-
-
-## Authors
-
-| Name | Role |
-|------|------|
-| **Benedikt** | Model Architecture, Training Pipeline |
-| **Luka** | Data Processing, Inference & Evaluation |
+- Font variation *(including potential use cases for old German fonts)*
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-Deep_Larning_Captcha/
+Deep_Learning_Captcha/
 │
-├── train.py          # Training script
-├── inference.py      # Inference script (single image & batch)
-├── README.md         # This file
-└── .gitignore        # Excludes model weights & cache
-
-
-Chars74K (Character-level backbone for pretraining)
-    ↓
-CNN backbone pretraining
-    ↓ 
-Synthetic CAPTCHA sequence training (use this for controlled distortions)
-    ↓
-Distortion robustness evaluation
-    ↓
-Real CAPTCHA generalization testing
-
-## Architecture
-Input Image (160 × 48 px)
-│
-▼
-┌───────────────────┐
-│  ResNet CNN       │  4 ResBlocks (stride-2)
-│  Backbone         │  32 → 64 → 128 → 256 channels
-└───────────────────┘
-│
-▼
-┌───────────────────┐
-│  Linear           │  Feature projection → d_model=256
-│  Projection       │
-└───────────────────┘
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                        # CI/CD Pipeline
+│       └── ci.yml                             # CI/CD pipeline
 │
 ├── src/
-│   ├── Deep_Learning_Captcha.py          # Training script (GPU, high-performance)
-│   ├── Read_Captcha_Traind_Modell.py     # Inference script
-│   ├── classify.py                       # Classification (standard version)
-│   └── classify_optimized.py            # Classification (RAM-optimized, powerful PC)
+│   ├── Deep_Learning_Captcha.py               # Training script (GPU / high-performance)
+│   ├── Read_Captcha_Traind_Modell.py          # Inference script
+│   ├── classify.py                            # Classification (standard version)
+│   ├── classify_optimized.py                  # Classification (RAM-optimized, for powerful PCs)
+│   └── generate_synthetic_captcha/
+│       └── distortions/
+│           ├── __init__.py
+│           ├── levels.py                      # Level 1/2/3 parameter definitions
+│           ├── pipeline.py                    # Reusable DistortionPipeline class
+│           ├── generate_distorted_dataset.py  # Batch CLI generator
+│           ├── preview_distortions.py         # Visual preview generator
+│           └── README.md
 │
 ├── models/
-│   ├── Deep_2_1.pth                      # CAPTCHA model v2.1 (ResNet+Transformer)
-│   ├── ...                               # Further pre-trained models (coming soon)
-│   └── README_models.md                  # Description of all available models
+│   ├── Deep_2_1.pth                           # CAPTCHA model v2.1 (ResNet + Transformer)
+│   ├── ...                                    # Further pre-trained models (coming soon)
+│   └── README_models.md                       # Description of all available models
 │
 ├── plots/
-│   └── training_results_epoch20_acc93.png
+│   └── training_results_epoch20_acc93.png     # Training results visualization
+│
+├── tests/
+│   └── Lin_Modell_new.png                     # Test image
 │
 ├── README.md
 ├── LICENSE
-├── requirements.txt                      # GPU version dependencies
-├── requirements_cpu.txt                  # CPU version dependencies (coming soon)
-└── environment.yml                       # Conda environment (GPU)
+├── requirements.txt                           # GPU version dependencies
+├── requirements_cpu.txt                       # CPU version dependencies (coming soon)
+└── environment.yml                            # Conda environment (GPU)
 ```
 
 ---
@@ -117,7 +109,7 @@ Input Image (160 × 48 px)
 
 | Model | Task | Architecture | Accuracy | Dataset | Status |
 |-------|------|-------------|----------|---------|--------|
-| `Deep_2_1.pth` | CAPTCHA recognition | ResNet + Transformer | 93% Word / 96% Char | [CAPTCHA Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset) | ✅ Available |
+| `Deep_2_1.pth` | CAPTCHA recognition | ResNet + Transformer | 93% Word / 99% Char | [CAPTCHA Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset) | ✅ Available |
 | Handwriting model | Handwriting recognition | TBD | TBD | TBD | 🔜 Coming soon |
 | Lightweight model | CAPTCHA (weak PC) | TBD | TBD | TBD | 🔜 Coming soon |
 
@@ -126,7 +118,6 @@ Input Image (160 × 48 px)
 ---
 
 ## 📊 Model Architecture (ResNet + Transformer)
-
 
 | Step | Layer | Details |
 |------|-------|---------|
@@ -139,10 +130,7 @@ Input Image (160 × 48 px)
 | 7 | **Decoding** | Greedy (fast) or Beam Search width=5 (accurate) |
 | 8 | **Output** | Predicted text string |
 
-
----
-
-## Model Details
+### Model Hyperparameters
 
 | Parameter | Value |
 |-----------|-------|
@@ -165,7 +153,23 @@ Input Image (160 × 48 px)
 
 ---
 
-## Dataset
+## 🔄 Training Pipeline
+
+```
+Chars74K (character-level backbone pretraining)
+    ↓
+CNN backbone pretraining
+    ↓
+Synthetic CAPTCHA sequence training (controlled distortions)
+    ↓
+Distortion robustness evaluation
+    ↓
+Real CAPTCHA generalization testing
+```
+
+---
+
+## 📦 Dataset
 
 **[CAPTCHA Dataset – Kaggle](https://www.kaggle.com/datasets/parsasam/captcha-dataset)**
 
@@ -178,26 +182,26 @@ Input Image (160 × 48 px)
 
 ---
 
-## Results
+## 📈 Results
 
 | Metric | Greedy Decoding | Beam Search (width=5) |
 |--------|-----------------|-----------------------|
-| Word Accuracy | ~93% | TBD |
-| Char Accuracy | ~99% | TBD |
+| Word Accuracy | 93% | TBD |
+| Char Accuracy | 99% | TBD |
 
 ![Training Results](plots/training_results_epoch20_acc93.png)
-
----
 
 ### Evaluation Metrics
 
 - Character Error Rate (CER)
 - Sequence Accuracy
-- Accuracy vs Distortion Severity
-- Humna vs Machine Accuracy
+- Accuracy vs. Distortion Severity
+- Human vs. Machine Accuracy
 - Inference Confidence Scores
 
-## Setup & Usage
+---
+
+## ⚙️ Setup & Usage
 
 ### 1. Install Dependencies
 
@@ -249,23 +253,22 @@ python src/classify.py
 python src/classify_optimized.py
 ```
 
-Two modes:
+Both scripts support two modes:
 - **Mode 1** — Single image with visualization
 - **Mode 2** — Batch prediction on an entire folder
 
 ---
 
-## CTC Decoding
+## 🔤 CTC Decoding
 
-**Greedy Decoding**  
+**Greedy Decoding**
 Fast — picks the most likely character at each timestep. Ideal for batch evaluation.
 
-**Beam Search (width=5)**  
-Explores multiple paths simultaneously. Slightly more accurate, used for single-image inference.
+**Beam Search (width=5)**
+Explores multiple paths simultaneously. Slightly more accurate; used for single-image inference.
 
 ---
 
-## Data Augmentation
 ## ⚡ Performance Optimizations
 
 | Optimization | Description |
@@ -273,7 +276,7 @@ Explores multiple paths simultaneously. Slightly more accurate, used for single-
 | AMP | float16 mixed precision — reduces memory, speeds up training |
 | RAM preloading | Entire dataset loaded into RAM before training (optimized version) |
 | pin_memory | Fast CPU→GPU data transfers |
-| cudnn.benchmark | Optimized CUDA kernels |
+| cudnn.benchmark | Optimized CUDA kernels for the current hardware |
 
 ---
 
@@ -287,23 +290,21 @@ Explores multiple paths simultaneously. Slightly more accurate, used for single-
 
 ---
 
-## Performance
+## ⚖️ Ethical Use
 
-- Entire dataset is loaded into RAM before training for maximum speed
-- AMP (Automatic Mixed Precision) reduces memory usage and speeds up training
-- `pin_memory=True` + `non_blocking=True` for fast CPU→GPU transfers
-- `torch.backends.cudnn.benchmark = True` for optimized CUDA kernels
+This project is intended for **educational and research purposes only**. All CAPTCHA images used are synthetically generated and are not intended to bypass real-world security systems.
 
 ---
 
-## .gitignore
+## 👥 Authors
 
-## Ethical Use
+| Name | Role |
+|------|------|
+| **Benedikt** | Model Architecture, Training Pipeline |
+| **Luka** | Data Processing, Inference & Evaluation |
 
-This project is intended for educational and research purposes only. 
-The CAPTCHA images are synthetically generated and are not intended to bypass real-world security systems.
+---
 
-## License
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
