@@ -216,10 +216,10 @@ Generated using the [Gregwar/Captcha](https://github.com/Gregwar/Captcha) PHP li
 
 Four experiments were conducted, each answering a distinct research question:
 
-### E1 — Model Benchmarking
+### Experiment 1 — Model Benchmarking
 CNN baseline vs. Transformer v1 vs. Transformer v2, evaluated on the Kaggle held-out test split. Establishes the benefit of the Transformer upgrade and the case-sensitivity fix.
 
-### E2 — Combined Distortion Benchmark
+### Experiment 2 — Combined Distortion Benchmark
 1,000 clean synthetic Arial images distorted at three combined severity levels:
 
 | Level | Name | Key parameters |
@@ -229,7 +229,7 @@ CNN baseline vs. Transformer v1 vs. Transformer v2, evaluated on the Kaggle held
 | L2 | Moderate | ±9° rotation · blur 1.1 · 180 dots · 5 lines · 1 occlusion |
 | L3 | Severe | ±16° rotation · blur 1.8 · 360 dots · 9 lines · 3 occlusions |
 
-### E3 — Experimental Ladder
+### Experiment 3 — Experimental Ladder
 7,000 images (1,000 per level) built from scratch with distortions added one at a time:
 
 | Level | Cumulative distortions | Fonts used |
@@ -242,7 +242,7 @@ CNN baseline vs. Transformer v1 vs. Transformer v2, evaluated on the Kaggle held
 | L5 | + Mild noise + 1 occlusion line + blur | 31 diverse fonts |
 | L6 | + Heavy noise + 3 lines + stronger blur | 31 diverse fonts |
 
-### E4 — Per-Distortion Isolation
+### Experiment 4 — Per-Distortion Isolation
 5 distortion types tested independently across 5 intensity levels, 200 images per level:
 
 | Distortion | Intensity levels tested |
