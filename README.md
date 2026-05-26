@@ -1,4 +1,4 @@
-# 🔐 Evaluating CAPTCHA Distortions with Deep Learning
+# Evaluating CAPTCHA Distortions with Deep Learning
 
 > **Can modern OCR systems beat the CAPTCHA?**
 
